@@ -138,7 +138,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 		@Override
 		public String getDisplayName() {
 
-			return "Testsigma Execution";
+			return "Testsigma Test Plan run";
 		}
 
 		public FormValidation doCheckExecutionRestURL(@QueryParameter String executionRestURL) {
