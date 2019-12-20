@@ -90,40 +90,31 @@ public class RestAPIUtil {
 		}
 	}
 
-	public static HashMap<String, Object> parseCurlCmdAndStartExecution(BuildListener listener, String executionRestURL)
+	public static String startTestSuiteExecution(BuildListener listener, String executionRestURL,String userName,String password)
 			throws IOException {
 
 		PrintStream consoleOut = listener.getLogger();
-		HashMap<String, Object> restParamsMap = parseRestURL(consoleOut, executionRestURL);
-		consoleOut.println("Execution URL:" + restParamsMap.get(URL));
-		consoleOut.println("Http Method:" + restParamsMap.get(HTTPMETHOD));
-		consoleOut.println("userName:" + restParamsMap.get(USERNAME));
-		consoleOut.println("password:" + restParamsMap.get(PASSWORD));
-		Object responseObj = executeRestCall(consoleOut, (String) restParamsMap.get(URL),
-				(String) restParamsMap.get(USERNAME), (String) restParamsMap.get(PASSWORD),
-				(String) restParamsMap.get(HTTPMETHOD));
-		restParamsMap.put(RESPONSE, responseObj);
+		Object responseObj = executeRestCall(consoleOut, executionRestURL.trim(),
+				userName.trim(), password,HTTP_POST);
 		consoleOut.println("Rest API Output:" + responseObj);
-		return restParamsMap;
+		return responseObj.toString();
 	}
 
-	public static HashMap<String, Object> runExecutionStatusCheck(BuildListener listener,
-			HashMap<String, Object> execResultMap, int runID, int maxWaitTimeInMinutes, int pollIntervalInMins,String reportFilePath)
+	public static void runExecutionStatusCheck(BuildListener listener,
+			String execURL,String userName,String password, int runID, int maxWaitTimeInMinutes, int pollIntervalInMins,String reportFilePath)
 			throws IOException, InterruptedException {
 		// Safe check, if max build wait time is less than pre-defined poll interval
 		pollIntervalInMins = (maxWaitTimeInMinutes < pollIntervalInMins) ? maxWaitTimeInMinutes : pollIntervalInMins;
 		PrintStream consoleOut = listener.getLogger();
-		String execURL = (String) execResultMap.get(URL);
+		
 		String statusURL = String.format("%s/%s/status", execURL, runID);
 		Object responseObj = null;
-		executeRestCall(consoleOut, statusURL, (String) execResultMap.get(USERNAME),
-				(String) execResultMap.get(PASSWORD), HTTP_GET);
 		int noOfPolls = maxWaitTimeInMinutes / pollIntervalInMins;
 		String reportURL = "";
 		consoleOut.println("Execution status check URL:"+statusURL);
+		String responseStr = null;
 		for (int i = 1; i <= noOfPolls; i++) {
-			responseObj = executeRestCall(consoleOut, statusURL, (String) execResultMap.get(USERNAME),
-					(String) execResultMap.get(PASSWORD), HTTP_GET);
+			responseObj = executeRestCall(consoleOut, statusURL, userName,password, HTTP_GET);
 			consoleOut.println("Rest API Output:" + responseObj);
 			consoleOut.println("Total time waited so far(in minutes)::" + ((i - 1) * pollIntervalInMins));
 			LinkedTreeMap<?, ?> jsonResult = (LinkedTreeMap<?, ?>) responseObj;
@@ -137,7 +128,7 @@ public class RestAPIUtil {
 				consoleOut.println("Testsigma Results URL:" + jsonResult.get("app_url").toString());
 				 writeJsonToTempFile(responseObj,reportFilePath);
 				consoleOut.println("Json Report In File:" + reportFilePath);
-				execResultMap.put("RESULT", responseObj.toString());
+				responseStr = responseObj.toString();
 				break;
 			}
 			try {
@@ -147,11 +138,11 @@ public class RestAPIUtil {
 				throw e;
 			}
 		}
-        if(execResultMap.get("RESULT") == null) {
-        	writeJsonToTempFile("Max wait time crossed, exiting build step.\n report_URl:"+reportURL,reportFilePath);
+        if(responseStr == null) {
+        	writeJsonToTempFile("Max wait time crossed, exiting build step.\nReport_URl:"+reportURL,reportFilePath);
 			consoleOut.println("Json Report In File:" + reportFilePath);
         }
-		return execResultMap;
+		
 	}
 
 	private static void writeJsonToTempFile(Object responseObj,String reportFilePath) throws IOException {

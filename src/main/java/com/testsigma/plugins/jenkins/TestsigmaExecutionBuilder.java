@@ -22,16 +22,37 @@ import hudson.util.FormValidation;
 
 public class TestsigmaExecutionBuilder extends Builder {
 	@DataBoundConstructor
-	public TestsigmaExecutionBuilder(String executionRestURL, String maxWaitInMinutes,String reportsFolder) {
+	public TestsigmaExecutionBuilder(String userName,String password,String executionRestURL, String maxWaitInMinutes,String reportsFolder) {
 		this.executionRestURL = executionRestURL;
 		this.maxWaitInMinutes = maxWaitInMinutes;
 		this.reportsFolder = reportsFolder;
+		this.userName = userName;
+		this.password = password;
 	}
 
 	private String executionRestURL;
 	private String maxWaitInMinutes;
     private String reportsFolder;
+    private String userName;
+    private String password;
     
+    
+	public String getUserName() {
+		return userName;
+	}
+
+	public void setUserName(String userName) {
+		this.userName = userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setPassword(String password) {
+		this.password = password;
+	}
+
 	public String getReportsFolder() {
 		return reportsFolder;
 	}
@@ -71,32 +92,34 @@ public class TestsigmaExecutionBuilder extends Builder {
 		Double maxWaitTime = Double.parseDouble(maxWaitInMinutes);
 		int pollingInterval = Integer.parseInt(Messages.TestsigmaExecutionBuilder_DescriptorImpl_pollingInterval_inMinutes());
         String reportAbsPath = RestAPIUtil.getReportsFilePath(listener,reportsFolder,buildID,Messages.TestsigmaExecutionBuilder_DescriptorImpl_reportFileName());
-		listener.getLogger().println("REST API URL:" + executionRestURL);
+		
+        listener.getLogger().println("Testsigma UserName:" + userName);
+        listener.getLogger().println("REST API URL:" + executionRestURL);
 		listener.getLogger().println("Max wait time in minutes:" + maxWaitInMinutes);
 		listener.getLogger().println("Polling Interval:" + pollingInterval+" minutes");
 		listener.getLogger().println("Report file path:"+reportAbsPath);
-		HashMap<String, Object> execResultMap = RestAPIUtil.parseCurlCmdAndStartExecution(listener,
-				executionRestURL.trim());
-		Object respObj = execResultMap.get(RestAPIUtil.RESPONSE);
+		String response = RestAPIUtil.startTestSuiteExecution(listener,
+				executionRestURL.trim(),userName,password);
+		
 		// We should get a Run-ID as response which is a double value.If not a double
 		// value, we will throw an error.
 		int runID = -1;
 		try {
-			Double runIDFromResp = Double.parseDouble(respObj.toString());
+			Double runIDFromResp = Double.parseDouble(response);
 			runID = runIDFromResp.intValue();
 			listener.getLogger().println("Testsigma Run-ID::" + runID);
 		} catch (RuntimeException re) {
-			listener.error(respObj.toString());
+			listener.error(response);
 			return false;
 		}
 		if (runID <= 0) {
-			listener.error(respObj.toString());
+			listener.error(response);
 			return false;
 
 		}
 		// Start Execution status check
 		listener.getLogger().println("Started Testsigma testsuite execution status check");
-		RestAPIUtil.runExecutionStatusCheck(listener, execResultMap, runID,
+		RestAPIUtil.runExecutionStatusCheck(listener, executionRestURL,userName,password,runID,
 				maxWaitTime.intValue(), pollingInterval,reportAbsPath);
 		listener.getLogger().println("************Completed Testsigma Testsuite execution*************");
 		return true;
@@ -125,6 +148,20 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidURL());
 
 		}
+		public FormValidation doCheckUserName(@QueryParameter String userName) {
+			if (!RestAPIUtil.isNullOrEmpty(userName)) {
+				return FormValidation.ok();
+			}
+			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidUserName());
+
+		}
+		public FormValidation doCheckPassword(@QueryParameter String password) {
+			if (!RestAPIUtil.isNullOrEmpty(password)) {
+				return FormValidation.ok();
+			}
+			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidPassord());
+
+		}
 
 		public FormValidation doCheckMaxWaitInMinutes(@QueryParameter String maxWaitInMinutes) {
 			if (RestAPIUtil.isNullOrEmpty(maxWaitInMinutes)) {
@@ -134,10 +171,10 @@ public class TestsigmaExecutionBuilder extends Builder {
 				Double val = Double.parseDouble(maxWaitInMinutes);
 				if (val < 0) {
 					return FormValidation
-							.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_enterGreaterThanZero());
+							.error(Messages.TestsigmaExecutionBuilder_DescriptorImpl_enterGreaterThanZero());
 				}
 			} catch (Exception e) {
-				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidNumber());
+				return FormValidation.error(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidNumber());
 			}
 			return FormValidation.ok();
 

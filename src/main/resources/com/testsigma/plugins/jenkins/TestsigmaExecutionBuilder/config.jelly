@@ -1,5 +1,15 @@
 <?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout" xmlns:t="/lib/hudson" xmlns:f="/lib/form">
+   
+   
+   <f:entry title="${%testsigma.restAPI.userName}" field="userName">
+       <f:textbox field="userName" />
+    </f:entry>
+    
+    <f:entry title="${%testsigma.restAPI.password}" field="password">
+       <f:password field="password" />
+    </f:entry>
+   
    <f:entry title="${%testsigma.restAPI.title}" field="executionRestURL">
        <f:textbox field="executionRestURL" />
     </f:entry>
