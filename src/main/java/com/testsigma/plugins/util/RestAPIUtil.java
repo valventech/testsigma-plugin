@@ -22,6 +22,8 @@ import org.apache.http.util.EntityUtils;
 
 import com.google.common.net.UrlEscapers;
 import com.google.gson.Gson;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 import com.google.gson.internal.LinkedTreeMap;
 
 import hudson.model.BuildListener;
@@ -61,7 +63,12 @@ public class RestAPIUtil {
 			if (response != null) {
 				if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
 					String jsonString = EntityUtils.toString(response.getEntity());
-					return new Gson().fromJson(jsonString, Object.class);
+					if(httpMethod.equalsIgnoreCase(HTTP_POST)) {
+						return new Gson().fromJson(jsonString, Object.class);					
+					}else {
+						return new JsonParser().parse(jsonString).getAsJsonObject();
+						
+					}
 				} else if (response.getStatusLine().getStatusCode() == HttpStatus.SC_UNAUTHORIZED) {
 					return response.getStatusLine().getStatusCode() + " UnAuthorized access " + prefixUrl;
 				} else {
@@ -108,24 +115,23 @@ public class RestAPIUtil {
 		PrintStream consoleOut = listener.getLogger();
 		
 		String statusURL = String.format("%s/%s/status", execURL, runID);
-		Object responseObj = null;
+		JsonObject responseObj = null;
 		int noOfPolls = maxWaitTimeInMinutes / pollIntervalInMins;
 		String reportURL = "";
 		consoleOut.println("Execution status check URL:"+statusURL);
 		String responseStr = null;
 		for (int i = 1; i <= noOfPolls; i++) {
-			responseObj = executeRestCall(consoleOut, statusURL, userName,password, HTTP_GET);
+			responseObj = (JsonObject)executeRestCall(consoleOut, statusURL, userName,password, HTTP_GET);
 			consoleOut.println("Rest API Output:" + responseObj);
 			consoleOut.println("Total time waited so far(in minutes)::" + ((i - 1) * pollIntervalInMins));
-			LinkedTreeMap<?, ?> jsonResult = (LinkedTreeMap<?, ?>) responseObj;
-			Double statusCode = Double.parseDouble(jsonResult.get("status").toString());
+			Double statusCode = Double.parseDouble(responseObj.get("status").toString());
 			consoleOut.println("Status::" + statusCode);
-			reportURL = jsonResult.get("app_url").toString();
+			reportURL = responseObj.get("app_url").toString();
 			if (statusCode != 2) {
 				consoleOut.println("Execution completed:");
-				String summary = jsonResult.get("summary").toString();
+				String summary = responseObj.get("summary").toString();
 				consoleOut.println("Summary:" + summary);
-				consoleOut.println("Testsigma Results URL:" + jsonResult.get("app_url").toString());
+				consoleOut.println("Testsigma Results URL:" + responseObj.get("app_url").toString());
 				 writeJsonToTempFile(responseObj,reportFilePath);
 				consoleOut.println("Json Report In File:" + reportFilePath);
 				responseStr = responseObj.toString();
