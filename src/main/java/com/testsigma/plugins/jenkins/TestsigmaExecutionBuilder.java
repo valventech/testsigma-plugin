@@ -11,6 +11,7 @@ import hudson.tasks.Builder;
 import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
+import org.kohsuke.stapler.verb.POST;
 
 import java.io.IOException;
 
@@ -113,7 +114,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 
 			return "Testsigma Test Plan run";
 		}
-
+		@POST
 		public FormValidation doCheckTestPlanId(@QueryParameter String testPlanId) {
 			if (!RestAPIUtil.isNullOrEmpty(testPlanId)) {
 				return FormValidation.ok();
@@ -121,6 +122,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidTestPlanId());
 
 		}
+		@POST
 		public FormValidation doCheckApiKey(@QueryParameter String apiKey) {
 			if (!RestAPIUtil.isNullOrEmpty(apiKey)) {
 				return FormValidation.ok();
@@ -128,6 +130,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidApikey());
 
 		}
+		@POST
 		public FormValidation doCheckMaxWaitInMinutes(@QueryParameter String maxWaitInMinutes) {
 			if (RestAPIUtil.isNullOrEmpty(maxWaitInMinutes)) {
 				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidNumber());
@@ -144,7 +147,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return FormValidation.ok();
 
 		}
-
+		@POST
 		public FormValidation doCheckReportsFilePath(@QueryParameter String reportsFilePath){
 			if (RestAPIUtil.isNullOrEmpty(reportsFilePath)) {
 				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invaliedReportFileName());
