@@ -1,64 +1,40 @@
 package com.testsigma.plugins.jenkins;
 
-import java.io.File;
-import java.io.IOException;
-import java.util.HashMap;
-
-import org.kohsuke.stapler.DataBoundConstructor;
-import org.kohsuke.stapler.QueryParameter;
-import org.kohsuke.stapler.bind.JavaScriptMethod;
-
 import com.testsigma.plugins.util.RestAPIUtil;
-
 import hudson.Extension;
 import hudson.Launcher;
 import hudson.model.AbstractProject;
 import hudson.model.Build;
 import hudson.model.BuildListener;
-import hudson.model.Result;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
+import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.QueryParameter;
+
+import java.io.IOException;
 
 public class TestsigmaExecutionBuilder extends Builder {
 	@DataBoundConstructor
-	public TestsigmaExecutionBuilder(String userName,String password,String executionRestURL, String maxWaitInMinutes,String reportsFolder) {
-		this.executionRestURL = executionRestURL;
+	public TestsigmaExecutionBuilder(String apiKey,String testPlanId, String maxWaitInMinutes,String reportsFilePath) throws IOException {
+		this.testPlanId = testPlanId;
 		this.maxWaitInMinutes = maxWaitInMinutes;
-		this.reportsFolder = reportsFolder;
-		this.userName = userName;
-		this.password = password;
+		this.reportsFilePath= reportsFilePath;
+		this.apiKey = apiKey.trim();
 	}
 
-	private String executionRestURL;
+	private String testPlanId;
 	private String maxWaitInMinutes;
-    private String reportsFolder;
-    private String userName;
-    private String password;
-    
-    
-	public String getUserName() {
-		return userName;
+    private String reportsFilePath;
+    private String apiKey;
+
+
+	public String getTestPlanId() {
+		return testPlanId;
 	}
 
-	public void setUserName(String userName) {
-		this.userName = userName;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
-	}
-
-	public String getReportsFolder() {
-		return reportsFolder;
-	}
-
-	public void setReportsFolder(String reportsFolder) {
-		this.reportsFolder = reportsFolder;
+	public void setTestPlanId(String testPlanId) {
+		this.testPlanId = testPlanId;
 	}
 
 	public String getMaxWaitInMinutes() {
@@ -69,58 +45,55 @@ public class TestsigmaExecutionBuilder extends Builder {
 		this.maxWaitInMinutes = maxWaitInMinutes;
 	}
 
-	public String getExecutionRestURL() {
-		return executionRestURL;
+	public String getReportsFilePath() {
+		return reportsFilePath;
 	}
 
-	public void setExecutionRestURL(String executionRestURL) {
-		this.executionRestURL = executionRestURL;
+	public void setReportsFilePath(String reportsFilePath) {
+		this.reportsFilePath = reportsFilePath;
+	}
+
+	public String getApiKey() {
+		return apiKey;
+	}
+
+	public void setApiKey(String apiKey) {
+		this.apiKey = apiKey;
 	}
 
 	@Override
 	public boolean perform(Build<?, ?> build, Launcher launcher, BuildListener listener)
 			throws InterruptedException, IOException {
-        
-		Long buildID = Long.parseLong(build.getId()); 
+		RestAPIUtil restUtil = new RestAPIUtil(listener);
 		listener.getLogger().println("Build ID:"+build.getId());
-		listener.getLogger().println("Build details:"+build.toString());
-		
-		listener.getLogger().println("************Started Testsigma Testsuite execution*************");
-		if (RestAPIUtil.isNullOrEmpty(executionRestURL)) {
-			listener.error("Testsigma REST API URL cannot be empty");
+		listener.getLogger().println("************Started Testsigma Testplan execution*************");
+		if (RestAPIUtil.isNullOrEmpty(testPlanId)) {
+			listener.error("Testsigma TestPlan Id cannot be empty");
 		}
 		Double maxWaitTime = Double.parseDouble(maxWaitInMinutes);
 		int pollingInterval = Integer.parseInt(Messages.TestsigmaExecutionBuilder_DescriptorImpl_pollingInterval_inMinutes());
-        String reportAbsPath = RestAPIUtil.getReportsFilePath(listener,reportsFolder,buildID,Messages.TestsigmaExecutionBuilder_DescriptorImpl_reportFileName());
-		
-        listener.getLogger().println("Testsigma UserName:" + userName);
-        listener.getLogger().println("REST API URL:" + executionRestURL);
+
+		listener.getLogger().println("TestPlanID:" + testPlanId);
 		listener.getLogger().println("Max wait time in minutes:" + maxWaitInMinutes);
 		listener.getLogger().println("Polling Interval:" + pollingInterval+" minutes");
-		listener.getLogger().println("Report file path:"+reportAbsPath);
-		String response = RestAPIUtil.startTestSuiteExecution(listener,
-				executionRestURL.trim(),userName,password);
-		
-		// We should get a Run-ID as response which is a double value.If not a double
-		// value, we will throw an error.
-		int runID = -1;
-		try {
-			Double runIDFromResp = Double.parseDouble(response);
-			runID = runIDFromResp.intValue();
-			listener.getLogger().println("Testsigma Run-ID::" + runID);
-		} catch (RuntimeException re) {
-			listener.error(response);
-			return false;
-		}
-		if (runID <= 0) {
-			listener.error(response);
+		listener.getLogger().println("Report file path:"+reportsFilePath);
+		String runId = restUtil.startTestSuiteExecution(testPlanId.trim(),apiKey);
+
+
+		if (runId == null || runId.isEmpty()) {
+			listener.getLogger().println("Unable to start Testsigma test plan execution.");
 			return false;
 
 		}
 		// Start Execution status check
-		listener.getLogger().println("Started Testsigma testsuite execution status check");
-		RestAPIUtil.runExecutionStatusCheck(listener, executionRestURL,userName,password,runID,
-				maxWaitTime.intValue(), pollingInterval,reportAbsPath);
+		boolean isExecutionCompleted = restUtil.runExecutionStatusCheck(listener, apiKey,runId,
+				maxWaitTime.intValue(), pollingInterval);
+		if(isExecutionCompleted){
+          restUtil.saveTestReports(listener.getLogger(),apiKey,runId,reportsFilePath);
+		}else{
+			listener.getLogger().println("Test Plan execution not completed,please increase wait time " +
+					"OR visit https://app.testsigma for test plan execution results.");
+		}
 		listener.getLogger().println("************Completed Testsigma Testsuite execution*************");
 		return true;
 	}
@@ -141,28 +114,20 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return "Testsigma Test Plan run";
 		}
 
-		public FormValidation doCheckExecutionRestURL(@QueryParameter String executionRestURL) {
-			if (!RestAPIUtil.isNullOrEmpty(executionRestURL)) {
+		public FormValidation doCheckTestPlanId(@QueryParameter String testPlanId) {
+			if (!RestAPIUtil.isNullOrEmpty(testPlanId)) {
 				return FormValidation.ok();
 			}
-			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidURL());
+			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidTestPlanId());
 
 		}
-		public FormValidation doCheckUserName(@QueryParameter String userName) {
-			if (!RestAPIUtil.isNullOrEmpty(userName)) {
+		public FormValidation doCheckApiKey(@QueryParameter String apiKey) {
+			if (!RestAPIUtil.isNullOrEmpty(apiKey)) {
 				return FormValidation.ok();
 			}
-			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidUserName());
+			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidApikey());
 
 		}
-		public FormValidation doCheckPassword(@QueryParameter String password) {
-			if (!RestAPIUtil.isNullOrEmpty(password)) {
-				return FormValidation.ok();
-			}
-			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidPassord());
-
-		}
-
 		public FormValidation doCheckMaxWaitInMinutes(@QueryParameter String maxWaitInMinutes) {
 			if (RestAPIUtil.isNullOrEmpty(maxWaitInMinutes)) {
 				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidNumber());
@@ -179,20 +144,13 @@ public class TestsigmaExecutionBuilder extends Builder {
 			return FormValidation.ok();
 
 		}
-		public FormValidation doCheckReportsFolder(@QueryParameter String reportsFolder) {
-			if (RestAPIUtil.isNullOrEmpty(reportsFolder)) {
-				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_defaultFolder());
-			}
-			File f = new File(reportsFolder);
-			if(!f.exists()) {
-				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_folderNotExist());
-			}else if(!f.isDirectory()){
-				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_notAFolder());	
-			}
-			return FormValidation.ok(String.format("Report will be copied to %s%s{Build_no}%s directory", reportsFolder,File.separator,File.separator));
 
+		public FormValidation doCheckReportsFilePath(@QueryParameter String reportsFilePath){
+			if (RestAPIUtil.isNullOrEmpty(reportsFilePath)) {
+				return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invaliedReportFileName());
+			}
+			return FormValidation.ok();
 		}
-		
 
 	}
 
