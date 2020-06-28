@@ -3,6 +3,7 @@ package com.testsigma.plugins.util;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import hudson.model.BuildListener;
+import hudson.util.Secret;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.FileUtils;
 import org.apache.http.HttpEntity;
@@ -66,7 +67,7 @@ public class RestAPIUtil {
         }
     }
 
-    public String startTestSuiteExecution(String testPlanId, String apiKey)
+    public String startTestSuiteExecution(String testPlanId, Secret apiKey)
             throws IOException {
         String executionTriggerURL = properties.getProperty("testsigma.execution.trigger.restapi");
         JsonObject jsonData = new JsonObject();
@@ -76,7 +77,7 @@ public class RestAPIUtil {
         try {
             httpclient = HttpClients.createDefault();
             HttpPost httpPost = new HttpPost(executionTriggerURL);
-            httpPost.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.trim());
+            httpPost.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.getPlainText().trim());
             httpPost.setHeader(org.apache.http.HttpHeaders.CONTENT_TYPE, "application/json; " + StandardCharsets.UTF_8);
             httpPost.setHeader(HttpHeaders.ACCEPT, "application/json; " + StandardCharsets.UTF_8);
             HttpEntity stringEntity = new StringEntity(jsonData.toString(), ContentType.APPLICATION_JSON);
@@ -95,7 +96,7 @@ public class RestAPIUtil {
         return dataObject.get("id").toString();
     }
 
-    public boolean runExecutionStatusCheck(BuildListener listener, String apiKey, String runId, int maxWaitTimeInMinutes, int pollIntervalInMins)
+    public boolean runExecutionStatusCheck(BuildListener listener, Secret apiKey, String runId, int maxWaitTimeInMinutes, int pollIntervalInMins)
             throws IOException, InterruptedException {
         // Safe check, if max build wait time is less than pre-defined poll interval
         pollIntervalInMins = (maxWaitTimeInMinutes < pollIntervalInMins) ? maxWaitTimeInMinutes : pollIntervalInMins;
@@ -104,7 +105,7 @@ public class RestAPIUtil {
         JsonObject responseObj = null;
         int noOfPolls = maxWaitTimeInMinutes / pollIntervalInMins;
         for (int i = 1; i <= noOfPolls; i++) {
-            responseObj = (JsonObject) getTestPlanExecutionStatus(statusURL, apiKey);
+            responseObj = (JsonObject) getTestPlanExecutionStatus(statusURL, apiKey.getPlainText().trim());
             String status = responseObj.get("status").toString();
             consoleOut.println("Test execution Status..." + status);
             if (status.trim().contains("STATUS_IN_PROGRESS")) {
@@ -158,14 +159,14 @@ public class RestAPIUtil {
         return String.format("%s%s%s%s%s", tempDir, File.separator, buildID, File.separator, reportFileName);
     }
 
-    public void saveTestReports(PrintStream logger, String apiKey, String runId, String reportsFilePath) throws IOException {
+    public void saveTestReports(Secret apiKey, String runId, String reportsFilePath) throws IOException {
         CloseableHttpClient httpclient = null;
         Object responseObj = null;
         String reportsAPI = String.format("%s/%s", properties.getProperty("testsigma.reports.junit.restapi"), runId);
         try {
             httpclient = HttpClients.createDefault();
             HttpGet httpGet = new HttpGet(reportsAPI);
-            httpGet.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.trim());
+            httpGet.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.getPlainText().trim());
             httpGet.setHeader(org.apache.http.HttpHeaders.CONTENT_TYPE, "application/json; " + StandardCharsets.UTF_8);
             httpGet.setHeader(HttpHeaders.ACCEPT, "application/xml; " + StandardCharsets.UTF_8);
             CloseableHttpResponse response = httpclient.execute(httpGet);

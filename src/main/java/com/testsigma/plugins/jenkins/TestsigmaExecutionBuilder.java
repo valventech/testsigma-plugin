@@ -12,7 +12,7 @@ import hudson.util.FormValidation;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.verb.POST;
-
+import hudson.util.Secret;
 import java.io.IOException;
 
 public class TestsigmaExecutionBuilder extends Builder {
@@ -21,13 +21,13 @@ public class TestsigmaExecutionBuilder extends Builder {
 		this.testPlanId = testPlanId;
 		this.maxWaitInMinutes = maxWaitInMinutes;
 		this.reportsFilePath= reportsFilePath;
-		this.apiKey = apiKey.trim();
+		this.apiKey = Secret.fromString(apiKey);
 	}
 
 	private String testPlanId;
 	private String maxWaitInMinutes;
     private String reportsFilePath;
-    private String apiKey;
+    private Secret apiKey;
 
 
 	public String getTestPlanId() {
@@ -54,12 +54,12 @@ public class TestsigmaExecutionBuilder extends Builder {
 		this.reportsFilePath = reportsFilePath;
 	}
 
-	public String getApiKey() {
+	public Secret getApiKey() {
 		return apiKey;
 	}
 
 	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
+		this.apiKey = Secret.fromString(apiKey);;
 	}
 
 	@Override
@@ -90,7 +90,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 		boolean isExecutionCompleted = restUtil.runExecutionStatusCheck(listener, apiKey,runId,
 				maxWaitTime.intValue(), pollingInterval);
 		if(isExecutionCompleted){
-          restUtil.saveTestReports(listener.getLogger(),apiKey,runId,reportsFilePath);
+          restUtil.saveTestReports(apiKey,runId,reportsFilePath);
 		}else{
 			listener.getLogger().println("Test Plan execution not completed,please increase wait time " +
 					"OR visit https://app.testsigma for test plan execution results.");
@@ -124,7 +124,8 @@ public class TestsigmaExecutionBuilder extends Builder {
 		}
 		@POST
 		public FormValidation doCheckApiKey(@QueryParameter String apiKey) {
-			if (!RestAPIUtil.isNullOrEmpty(apiKey)) {
+			Secret key = Secret.fromString(apiKey);
+			if (key != null) {
 				return FormValidation.ok();
 			}
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidApikey());
