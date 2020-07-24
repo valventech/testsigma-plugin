@@ -124,8 +124,8 @@ public class TestsigmaExecutionBuilder extends Builder {
 		}
 		@POST
 		public FormValidation doCheckApiKey(@QueryParameter String apiKey) {
-			Secret key = Secret.fromString(apiKey);
-			if (key != null) {
+			//Secret key = Secret.fromString(apiKey);
+			if (apiKey != null) {
 				return FormValidation.ok();
 			}
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidApikey());
