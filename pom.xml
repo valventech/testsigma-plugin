@@ -9,7 +9,7 @@
     </parent>
     <artifactId>testsigma</artifactId>
     <groupId>io.jenkins.plugins</groupId>
-    <version>1.2-SNAPSHOT</version>
+    <version>1.2</version>
     <packaging>hpi</packaging>
 
     <properties>

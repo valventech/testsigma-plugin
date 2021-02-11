@@ -6,6 +6,7 @@ import hudson.model.BuildListener;
 import hudson.util.Secret;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
@@ -174,7 +175,11 @@ public class RestAPIUtil {
             File reportsFile = new File(reportsFilePath);
             FileUtils.writeStringToFile(reportsFile, responseObj.toString());
             listener.getLogger().println("Reports saved to:"+reportsFile.getAbsolutePath());
-        } finally {
+        }catch(Exception e){
+            listener.getLogger().println("Report generation failed..");
+            listener.getLogger().println(ExceptionUtils.getStackTrace(e));
+        }
+        finally {
             if (httpclient != null) httpclient.close();
         }
 
