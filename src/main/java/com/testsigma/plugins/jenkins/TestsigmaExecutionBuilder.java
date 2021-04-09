@@ -1,11 +1,10 @@
 package com.testsigma.plugins.jenkins;
 
+import com.testsigma.plugins.util.CommonUtil;
 import com.testsigma.plugins.util.RestAPIUtil;
 import hudson.Extension;
 import hudson.Launcher;
-import hudson.model.AbstractProject;
-import hudson.model.Build;
-import hudson.model.BuildListener;
+import hudson.model.*;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.util.FormValidation;
@@ -74,13 +73,16 @@ public class TestsigmaExecutionBuilder extends Builder {
 		Double maxWaitTime = Double.parseDouble(maxWaitInMinutes);
 		int pollingInterval = Integer.parseInt(Messages.TestsigmaExecutionBuilder_DescriptorImpl_pollingInterval_inMinutes());
 
-		listener.getLogger().println("TestPlanID:" + testPlanId);
+		listener.getLogger().println("Provided TestPlanID:" + testPlanId);
 		listener.getLogger().println("Max wait time in minutes:" + maxWaitInMinutes);
 		listener.getLogger().println("Polling Interval:" + pollingInterval+" minutes");
 		listener.getLogger().println("Report file path:"+reportsFilePath);
-		String runId = restUtil.startTestSuiteExecution(testPlanId.trim(),apiKey);
 
+		String resolvedTestPlanId = CommonUtil.extractTestPlanId(testPlanId,build,listener);
+		listener.getLogger().println("Test plan Id:"+resolvedTestPlanId);
 
+        //Start test plan trigger
+		String runId = restUtil.startTestSuiteExecution(resolvedTestPlanId.trim(),apiKey);
 		if (runId == null || runId.isEmpty()) {
 			listener.getLogger().println("Unable to start Testsigma test plan execution.");
 			return false;
@@ -89,6 +91,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 		// Start Execution status check
 		boolean isExecutionCompleted = restUtil.runExecutionStatusCheck(listener, apiKey,runId,
 				maxWaitTime.intValue(), pollingInterval);
+		//Start report generation
 		if(isExecutionCompleted){
           restUtil.saveTestReports(apiKey,runId,reportsFilePath);
 		}else{

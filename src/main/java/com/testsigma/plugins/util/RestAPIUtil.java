@@ -87,8 +87,6 @@ public class RestAPIUtil {
             dataObject = (JsonObject) getDataFromResponse(response, false);
 
 
-
-
         } finally {
             if (httpclient != null) httpclient.close();
         }
