@@ -28,11 +28,9 @@ import java.util.Properties;
 public class RestAPIUtil {
     private Properties properties = new Properties();
     BuildListener listener = null;
-    private String apiEndPoint = null;
 
-    public RestAPIUtil(BuildListener listener,String apiEndPoint) throws IOException {
+    public RestAPIUtil(BuildListener listener) throws IOException {
         this.listener = listener;
-        this.apiEndPoint = apiEndPoint;
         InputStream is = null;
         try {
             is = getClass().getResourceAsStream("/testsigma.properties");
@@ -72,7 +70,7 @@ public class RestAPIUtil {
 
     public String startTestSuiteExecution(String testPlanId, Secret apiKey)
             throws IOException {
-        String executionTriggerURL = getExecutionAPI();
+        String executionTriggerURL = properties.getProperty("testsigma.execution.trigger.restapi");
         JsonObject jsonData = new JsonObject();
         jsonData.addProperty("executionId", testPlanId);
         CloseableHttpClient httpclient = null;
@@ -97,17 +95,13 @@ public class RestAPIUtil {
         return dataObject.get("id").toString();
     }
 
-    private String getExecutionAPI() {
-      return String.format("%s%s",apiEndPoint,properties.getProperty("testsigma.execution.trigger.restapi"));
-    }
-
     public boolean runExecutionStatusCheck(BuildListener listener, Secret apiKey, String runId, int maxWaitTimeInMinutes, int pollIntervalInMins)
             throws IOException, InterruptedException {
         // Safe check, if max build wait time is less than pre-defined poll interval
         pollIntervalInMins = (maxWaitTimeInMinutes < pollIntervalInMins) ? maxWaitTimeInMinutes : pollIntervalInMins;
         PrintStream consoleOut = listener.getLogger();
-        String statusURL = String.format("%s/%s",getExecutionAPI(), runId);
-        JsonObject responseObj;
+        String statusURL = String.format("%s/%s", properties.getProperty("testsigma.execution.trigger.restapi"), runId);
+        JsonObject responseObj = null;
         int noOfPolls = maxWaitTimeInMinutes / pollIntervalInMins;
         for (int i = 1; i <= noOfPolls; i++) {
             responseObj = (JsonObject) getTestPlanExecutionStatus(statusURL, apiKey.getPlainText().trim());
@@ -167,7 +161,7 @@ public class RestAPIUtil {
     public void saveTestReports(Secret apiKey, String runId, String reportsFilePath) throws IOException {
         CloseableHttpClient httpclient = null;
         Object responseObj = null;
-        String reportsAPI = String.format("%s/%s",getReportsAPI(), runId);
+        String reportsAPI = String.format("%s/%s", properties.getProperty("testsigma.reports.junit.restapi"), runId);
         try {
             httpclient = HttpClients.createDefault();
             HttpGet httpGet = new HttpGet(reportsAPI);
@@ -187,9 +181,5 @@ public class RestAPIUtil {
             if (httpclient != null) httpclient.close();
         }
 
-    }
-
-    private String getReportsAPI() {
-        return String.format("%s%s", apiEndPoint,properties.getProperty("testsigma.reports.junit.restapi"));
     }
 }
