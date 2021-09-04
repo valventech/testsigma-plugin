@@ -15,18 +15,30 @@ import hudson.util.Secret;
 import java.io.IOException;
 
 public class TestsigmaExecutionBuilder extends Builder {
+	private String testPlanId;
+	private String maxWaitInMinutes;
+	private String reportsFilePath;
+	private Secret apiKey;
+	private String apiEndPoint;
 	@DataBoundConstructor
-	public TestsigmaExecutionBuilder(String apiKey,String testPlanId, String maxWaitInMinutes,String reportsFilePath) throws IOException {
+	public TestsigmaExecutionBuilder(String apiEndPoint,String apiKey,String testPlanId, String maxWaitInMinutes,String reportsFilePath) throws IOException {
 		this.testPlanId = testPlanId;
 		this.maxWaitInMinutes = maxWaitInMinutes;
 		this.reportsFilePath= reportsFilePath;
 		this.apiKey = Secret.fromString(apiKey);
+		this.apiEndPoint = apiEndPoint;
 	}
 
-	private String testPlanId;
-	private String maxWaitInMinutes;
-    private String reportsFilePath;
-    private Secret apiKey;
+
+	public String getApiEndPoint() {
+		return apiEndPoint;
+	}
+
+	public void setApiEndPoint(String apiEndPoint) {
+		this.apiEndPoint = apiEndPoint;
+	}
+
+
 
 
 	public String getTestPlanId() {
@@ -64,7 +76,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 	@Override
 	public boolean perform(Build<?, ?> build, Launcher launcher, BuildListener listener)
 			throws InterruptedException, IOException {
-		RestAPIUtil restUtil = new RestAPIUtil(listener);
+		RestAPIUtil restUtil = new RestAPIUtil(listener,apiEndPoint);
 		listener.getLogger().println("Build ID:"+build.getId());
 		listener.getLogger().println("************Started Testsigma Testplan execution*************");
 		if (RestAPIUtil.isNullOrEmpty(testPlanId)) {
@@ -72,7 +84,7 @@ public class TestsigmaExecutionBuilder extends Builder {
 		}
 		Double maxWaitTime = Double.parseDouble(maxWaitInMinutes);
 		int pollingInterval = Integer.parseInt(Messages.TestsigmaExecutionBuilder_DescriptorImpl_pollingInterval_inMinutes());
-
+		listener.getLogger().println("Testsigma API Endpoint:" + apiEndPoint);
 		listener.getLogger().println("Provided TestPlanID:" + testPlanId);
 		listener.getLogger().println("Max wait time in minutes:" + maxWaitInMinutes);
 		listener.getLogger().println("Polling Interval:" + pollingInterval+" minutes");
@@ -123,6 +135,14 @@ public class TestsigmaExecutionBuilder extends Builder {
 				return FormValidation.ok();
 			}
 			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidTestPlanId());
+
+		}
+		@POST
+		public FormValidation doCheckApiEndPoint(@QueryParameter String apiEndPoint) {
+			if (!RestAPIUtil.isNullOrEmpty(apiEndPoint)) {
+				return FormValidation.ok();
+			}
+			return FormValidation.warning(Messages.TestsigmaExecutionBuilder_DescriptorImpl_invalidapiEndPoint());
 
 		}
 		@POST
