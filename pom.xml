@@ -25,7 +25,7 @@
 
     <name>Testsigma Test Plan run</name>
     <description>This plugin can be used to trigger a Testsigma execution as part of build process.</description>
-    <url>https://support.testsigma.com/support/solutions/articles/32000022660-how-to-integrate-jenkins-ci-cd-tool-in-testsigma</url>
+    <url>https://testsigma.com/docs/continuous-integration/jenkins/</url>
     <organization>
         <name>Testsigma Technologies</name>
         <url>https://www.testsigma.com</url>
