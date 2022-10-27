@@ -4,7 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import hudson.model.BuildListener;
 import hudson.util.Secret;
-import org.apache.commons.httpclient.HttpStatus;
+import java.net.HttpURLConnection;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.lang.exception.ExceptionUtils;
 import org.apache.http.HttpEntity;
@@ -51,7 +51,7 @@ public class RestAPIUtil {
     public Object getDataFromResponse(CloseableHttpResponse response, boolean isReport) throws IOException {
 
         if (response != null) {
-            if (response.getStatusLine().getStatusCode() == HttpStatus.SC_OK) {
+            if (response.getStatusLine().getStatusCode() == HttpURLConnection.HTTP_OK) {
                 String jsonString = EntityUtils.toString(response.getEntity());
 
                 if (isReport) {
