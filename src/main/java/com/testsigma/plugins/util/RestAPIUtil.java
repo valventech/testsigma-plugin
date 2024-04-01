@@ -134,7 +134,7 @@ public class RestAPIUtil {
                 }
             } else {
                 consoleOut.println("Test suites Execution completed");
-                consoleOut.println("Test suites Execution consilidated result "+ result);
+                consoleOut.println("Test suites Execution consolidated result..."+ result);
                 return true;
             }
         }

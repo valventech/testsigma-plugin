@@ -111,10 +111,8 @@ public class TestsigmaExecutionBuilder extends Builder {
 					"OR visit https://app.testsigma for test plan execution results.");
 		}
 		listener.getLogger().println("************Completed Testsigma Testsuite execution*************");
-		if("SUCCESS".equalIgnoreCase(restUtil.getResult()))
-			return true;
-		else return false;
-	}
+        return "SUCCESS".equalsIgnoreCase(restUtil.getResult());
+    }
 
 
 
