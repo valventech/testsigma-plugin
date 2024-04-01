@@ -9,7 +9,7 @@
     </parent>
     <artifactId>testsigma</artifactId>
     <groupId>io.jenkins.plugins</groupId>
-    <version>1.8</version>
+    <version>1.9-SNAPSHOT</version>
     <packaging>hpi</packaging>
 
     <properties>
@@ -129,6 +129,6 @@
         <connection>scm:git:git@github.com:jenkinsci/testsigma-plugin.git</connection>
         <developerConnection>scm:git:git@github.com:jenkinsci/testsigma-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/testsigma-plugin</url>
-		<tag>1.8</tag>
+		<tag>testsigma-1.1</tag>
     </scm>
 </project>
