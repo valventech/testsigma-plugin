@@ -123,7 +123,7 @@ public class RestAPIUtil {
             responseObj = (JsonObject) getTestPlanExecutionStatus(statusURL, apiKey.getPlainText().trim());
             String status = responseObj.get("status").toString();
             consoleOut.println("Test execution Status..." + status);
-            result = responseObj.get("result").toString();
+            this.setResult(responseObj.get("result").toString());
             if (status.trim().contains("STATUS_IN_PROGRESS")) {
                 try {
                     Thread.sleep(pollIntervalInMins * 1000 * 60L);
@@ -134,7 +134,7 @@ public class RestAPIUtil {
                 }
             } else {
                 consoleOut.println("Test suites Execution completed");
-                consoleOut.println("Test suites Execution consolidated result..."+ result);
+                consoleOut.println("Test suites Execution consolidated result..."+ this.getResult());
                 return true;
             }
         }
