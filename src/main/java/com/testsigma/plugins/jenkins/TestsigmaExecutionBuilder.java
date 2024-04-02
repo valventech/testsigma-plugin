@@ -110,9 +110,8 @@ public class TestsigmaExecutionBuilder extends Builder {
 			listener.getLogger().println("Test Plan execution not completed,please increase wait time " +
 					"OR visit https://app.testsigma for test plan execution results.");
 		}
-		listener.getLogger().println("Result for the execution is "+ restUtil.getResult());
 		listener.getLogger().println("************Completed Testsigma Testsuite execution*************");
-        return "SUCCESS".equalsIgnoreCase(restUtil.getResult());
+        return restUtil.getResult() != null && restUtil.getResult().contains("SUCCESS");
     }
 
 
