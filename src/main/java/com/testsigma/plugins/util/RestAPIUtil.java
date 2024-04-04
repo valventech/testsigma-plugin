@@ -30,7 +30,17 @@ public class RestAPIUtil {
     BuildListener listener = null;
     private String apiEndPoint = null;
 
-    public RestAPIUtil(BuildListener listener,String apiEndPoint) throws IOException {
+    public String result = null;
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
+
+    public RestAPIUtil(BuildListener listener, String apiEndPoint) throws IOException {
         this.listener = listener;
         this.apiEndPoint = apiEndPoint;
         InputStream is = null;
@@ -113,6 +123,7 @@ public class RestAPIUtil {
             responseObj = (JsonObject) getTestPlanExecutionStatus(statusURL, apiKey.getPlainText().trim());
             String status = responseObj.get("status").toString();
             consoleOut.println("Test execution Status..." + status);
+            this.setResult(responseObj.get("result").toString());
             if (status.trim().contains("STATUS_IN_PROGRESS")) {
                 try {
                     Thread.sleep(pollIntervalInMins * 1000 * 60L);
@@ -123,9 +134,9 @@ public class RestAPIUtil {
                 }
             } else {
                 consoleOut.println("Test suites Execution completed");
+                consoleOut.println("Test suites Execution consolidated result..."+ this.getResult());
                 return true;
             }
-
         }
 
         return false;
