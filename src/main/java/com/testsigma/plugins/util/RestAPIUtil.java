@@ -91,7 +91,7 @@ public class RestAPIUtil {
             throws IOException {
         String executionTriggerURL = getExecutionAPI();
         JsonObject jsonData = new JsonObject();
-        jsonData.addProperty("executionId", testPlanId);
+        jsonData.addProperty("testPlanId", testPlanId);
         CloseableHttpClient httpclient = null;
         JsonObject dataObject = null;
         try {
