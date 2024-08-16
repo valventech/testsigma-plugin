@@ -12,6 +12,7 @@ import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
@@ -23,7 +24,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.Properties;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class RestAPIUtil {
     private Properties properties = new Properties();
@@ -88,7 +95,7 @@ public class RestAPIUtil {
         CloseableHttpClient httpclient = null;
         JsonObject dataObject = null;
         try {
-            httpclient = HttpClients.createDefault();
+            httpclient = httpclient();
             HttpPost httpPost = new HttpPost(executionTriggerURL);
             httpPost.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.getPlainText().trim());
             httpPost.setHeader(org.apache.http.HttpHeaders.CONTENT_TYPE, "application/json; " + StandardCharsets.UTF_8);
@@ -147,7 +154,7 @@ public class RestAPIUtil {
         CloseableHttpClient httpclient = null;
         Object responseObj;
         try {
-            httpclient = HttpClients.createDefault();
+            httpclient = httpclient();
             HttpGet httpGet = new HttpGet(statusURL);
             httpGet.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.trim());
             httpGet.setHeader(org.apache.http.HttpHeaders.CONTENT_TYPE, "application/json; " + StandardCharsets.UTF_8);
@@ -180,7 +187,7 @@ public class RestAPIUtil {
         Object responseObj = null;
         String reportsAPI = String.format("%s/%s",getReportsAPI(), runId);
         try {
-            httpclient = HttpClients.createDefault();
+            httpclient = httpclient();
             HttpGet httpGet = new HttpGet(reportsAPI);
             httpGet.setHeader(org.apache.http.HttpHeaders.AUTHORIZATION, "Bearer " + apiKey.getPlainText().trim());
             httpGet.setHeader(org.apache.http.HttpHeaders.CONTENT_TYPE, "application/json; " + StandardCharsets.UTF_8);
@@ -203,4 +210,31 @@ public class RestAPIUtil {
     private String getReportsAPI() {
         return String.format("%s%s", apiEndPoint,properties.getProperty("testsigma.reports.junit.restapi"));
     }
+    
+    private CloseableHttpClient httpclient() {
+		CloseableHttpClient httpClient = null;
+		try {
+			TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+				public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+					return null;
+				}
+
+				public void checkClientTrusted(X509Certificate[] certs, String authType) {
+				}
+
+				public void checkServerTrusted(X509Certificate[] certs, String authType) {
+				}
+			} };
+
+			SSLContext sc = SSLContext.getInstance("SSL");
+			sc.init(null, trustAllCerts, new SecureRandom());
+
+			httpClient = HttpClients.custom().setSSLContext(sc).setSSLHostnameVerifier(NoopHostnameVerifier.INSTANCE)
+					.build();
+		} catch (Exception e) {
+			httpClient = HttpClients.createDefault();
+			listener.getLogger().println(ExceptionUtils.getStackTrace(e));
+		}
+		return httpClient;
+	}
 }
